@@ -1,0 +1,291 @@
+# Predicted gameweek-1 starting XIs, 2026/27.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# For a promoted club the model has no Premier League history for ANYONE, so
+# every player falls to the same price-implied floor and the squad is a flat
+# line. The minutes-conservation step in fplab/roles.py guarantees the club
+# collectively fields 922 minutes, which is the right aggregate answer, but with
+# no information to rank them it spreads those minutes evenly — 32 minutes each
+# across 29 players. That is an honest expression of ignorance and a useless
+# projection, and it is why a squad of promoted-club enablers totalled in the
+# fifties.
+#
+# A predicted XI is the missing information. It is the one input that says which
+# eleven of the twenty-nine are the team.
+#
+# HOW IT IS USED
+# --------------
+# EXACTLY eleven names per club: one goalkeeper and ten outfielders. That is
+# not tidiness, it is correctness. An earlier version treated extra names as
+# free "because the floor only ever lifts" — it does not, because the floor is
+# a claim on a fixed minute budget. Arsenal accumulated twelve outfield names
+# for ten shirts and the two who lost the tie-break were Calafiori (19 expected
+# minutes) and Ben White (25), both certain starters.
+#
+# Used as a minutes FLOOR, and only for players the model is otherwise
+# uninformed about — no Premier League history, or fringe/new-signing capped. An
+# established player's own measured record beats a pre-season prediction and is
+# left alone: this file cannot demote Haaland or promote a benchwarmer at a
+# club the model already understands. See fplab/lineups.py.
+#
+# Conservation does the rest. Naming eleven starters at a promoted club pushes
+# the other eighteen down automatically, because the club's minutes still have
+# to add to 922.
+#
+# SOURCE AND SHELF LIFE
+# ---------------------
+# onefpl.com predicted GW1 line-ups for all 20 clubs, read 2026-08-12, checked
+# against Fantasy Football Scout and premierleague.com pre-season reports.
+# This is a PRE-SEASON prediction, not team news. Its value decays fast: once
+# real 2026/27 minutes exist the credibility blend in fplab/minutes.py takes
+# over and this file should be deleted rather than maintained.
+#
+# WHERE SOURCES DISAGREE
+# ----------------------
+# Because the floor only ever lifts, listing a player on the strength of one
+# credible source is cheap and omitting a real starter is not — so a name backed
+# by either source is included, and the disagreement is recorded here rather
+# than resolved silently:
+#
+#   IPS/O'Shea      onefpl start Kipré and Greaves; Fantasy Football Scout has
+#                   O'Shea as a nailed part of the back line and he was a
+#                   Premier League regular in 2023/24 (332 CBIT). Listed —
+#                   Ipswich therefore carry 12 named players, which conservation
+#                   absorbs by giving each slightly less than a full role.
+#   LEE/Muharemović premierleague.com has him starting three straight in a back
+#                   three; onefpl leaves him out. Listed.
+#
+# TRANSFERS SINCE THE SOURCE WAS READ
+# -----------------------------------
+# The build validates every name against the live registry and prints any that
+# no longer match, which is how these were caught rather than silently rotting:
+#   Bruno Guimaraes  Newcastle -> Arsenal. Moved, not dropped.
+#   Sasa Lukic       no longer in the Fulham squad. Row removed rather than
+#                    guessed at; Fulham carry ten named players, and because the
+#                    floor only ever lifts, ten is not a claim about the
+#                    eleventh.
+#
+# role: xi = predicted to start. Nothing else is listed; absence from this file
+# is not a claim that a player does not play.
+team,web_name,role
+ARS,Bruno G.,xi
+ARS,Calafiori,xi
+ARS,Gabriel,xi
+ARS,Gyökeres,xi
+ARS,Martinelli,xi
+ARS,Mosquera,xi
+ARS,Raya,xi
+ARS,Saka,xi
+ARS,White,xi
+ARS,Zubimendi,xi
+ARS,Ødegaard,xi
+AVL,Barkley,xi
+AVL,Buendía,xi
+AVL,Cash,xi
+AVL,Kamara,xi
+AVL,Konsa,xi
+AVL,Lindelöf,xi
+AVL,Maatsen,xi
+AVL,Martinez,xi
+AVL,McGinn,xi
+AVL,Pau,xi
+AVL,Watkins,xi
+BHA,Baleba,xi
+BHA,De Cuyper,xi
+BHA,Dunk,xi
+BHA,F.Kadıoğlu,xi
+BHA,Georginio,xi
+BHA,Groß,xi
+BHA,Hinshelwood,xi
+BHA,Minteh,xi
+BHA,Struijk,xi
+BHA,Svoboda,xi
+BHA,Verbruggen,xi
+BOU,Adams,xi
+BOU,Diakité,xi
+BOU,Evanilson,xi
+BOU,Hill,xi
+BOU,Kluivert,xi
+BOU,Petrović,xi
+BOU,Rayan,xi
+BOU,Scott,xi
+BOU,Smith,xi
+BOU,Tavernier,xi
+BOU,Truffert,xi
+BRE,Collins,xi
+BRE,Damsgaard,xi
+BRE,Janelt,xi
+BRE,Kayode,xi
+BRE,Kelleher,xi
+BRE,Lewis-Potter,xi
+BRE,O.Dango,xi
+BRE,Sangaré,xi
+BRE,Schade,xi
+BRE,Thiago,xi
+BRE,Van den Berg,xi
+CHE,Caicedo,xi
+CHE,Colwill,xi
+CHE,Estêvão,xi
+CHE,Gittens,xi
+CHE,Gusto,xi
+CHE,Hato,xi
+CHE,João Pedro,xi
+CHE,Lacroix,xi
+CHE,Lavia,xi
+CHE,Palmer,xi
+CHE,Sánchez,xi
+COV,Amenda,xi
+COV,Dasilva,xi
+COV,Dovin,xi
+COV,Grimes,xi
+COV,Onyeka,xi
+COV,Rudoni,xi
+COV,Sakamoto,xi
+COV,Tchaouna,xi
+COV,Thomas,xi
+COV,Wright,xi
+COV,van Ewijk,xi
+CRY,Canvot,xi
+CRY,Henderson,xi
+CRY,Kamada,xi
+CRY,Mingueza,xi
+CRY,Mitchell,xi
+CRY,Muñoz,xi
+CRY,Richards,xi
+CRY,Sarr,xi
+CRY,Strand Larsen,xi
+CRY,Wharton,xi
+CRY,Yeremy,xi
+EVE,Beto,xi
+EVE,Dewsbury-Hall,xi
+EVE,Hackney,xi
+EVE,Iroegbunam,xi
+EVE,Keane,xi
+EVE,Mykolenko,xi
+EVE,Ndiaye,xi
+EVE,O'Brien,xi
+EVE,Pickford,xi
+EVE,Röhl,xi
+EVE,Tarkowski,xi
+FUL,Bassey,xi
+FUL,Berge,xi
+FUL,Bobb,xi
+FUL,Castagne,xi
+FUL,García,xi
+FUL,Iwobi,xi
+FUL,J.Cuenca,xi
+FUL,Kevin,xi
+FUL,Leno,xi
+FUL,Robinson,xi
+FUL,Smith Rowe,xi
+HUL,Ajayi,xi
+HUL,Belloumi,xi
+HUL,Butland,xi
+HUL,Coyle,xi
+HUL,Gyabi,xi
+HUL,Hughes,xi
+HUL,McBurnie,xi
+HUL,Millar,xi
+HUL,Morita,xi
+HUL,Targett,xi
+HUL,Ömür,xi
+IPS,Akpom,xi
+IPS,Davis,xi
+IPS,Fatawu,xi
+IPS,Greaves,xi
+IPS,Johnson,xi
+IPS,Kipré,xi
+IPS,Maeda,xi
+IPS,Matusiwa,xi
+IPS,Núñez,xi
+IPS,Scherpen,xi
+IPS,Szmodics,xi
+LEE,Aaronson,xi
+LEE,Ampadu,xi
+LEE,Bijol,xi
+LEE,Bogle,xi
+LEE,Calvert-Lewin,xi
+LEE,Gudmundsson,xi
+LEE,Justin,xi
+LEE,Muharemović,xi
+LEE,Perri,xi
+LEE,Rodon,xi
+LEE,Stach,xi
+LIV,A.Becker,xi
+LIV,Frimpong,xi
+LIV,Gakpo,xi
+LIV,Gravenberch,xi
+LIV,Isak,xi
+LIV,Kerkez,xi
+LIV,Leoni,xi
+LIV,Mac Allister,xi
+LIV,Szoboszlai,xi
+LIV,Virgil,xi
+LIV,Wirtz,xi
+MCI,Doku,xi
+MCI,Donnarumma,xi
+MCI,Foden,xi
+MCI,Gvardiol,xi
+MCI,Haaland,xi
+MCI,Khusanov,xi
+MCI,Kovačić,xi
+MCI,Matheus N.,xi
+MCI,Reijnders,xi
+MCI,Rúben,xi
+MCI,Semenyo,xi
+MUN,Amad,xi
+MUN,B.Fernandes,xi
+MUN,Cunha,xi
+MUN,Dalot,xi
+MUN,Lammens,xi
+MUN,Maguire,xi
+MUN,Mainoo,xi
+MUN,Mbeumo,xi
+MUN,Shaw,xi
+MUN,Tielemans,xi
+MUN,Yoro,xi
+NEW,Barnes,xi
+NEW,Botman,xi
+NEW,Elanga,xi
+NEW,Hall,xi
+NEW,J.Ramsey,xi
+NEW,Joelinton,xi
+NEW,Livramento,xi
+NEW,Osula,xi
+NEW,Pope,xi
+NEW,Thiaw,xi
+NEW,Willock,xi
+NFO,Aina,xi
+NFO,Gibbs-White,xi
+NFO,Hutchinson,xi
+NFO,Jair Cunha,xi
+NFO,Milenković,xi
+NFO,Murillo,xi
+NFO,N.Williams,xi
+NFO,Sangaré,xi
+NFO,Schlager,xi
+NFO,Sels,xi
+NFO,Wood,xi
+SUN,Alderete,xi
+SUN,Angulo,xi
+SUN,Ballard,xi
+SUN,Brobbey,xi
+SUN,E.Le Fée,xi
+SUN,Hume,xi
+SUN,Mukiele,xi
+SUN,Reinildo,xi
+SUN,Roefs,xi
+SUN,Sadiki,xi
+SUN,Xhaka,xi
+TOT,Bentancur,xi
+TOT,Gallagher,xi
+TOT,Kinsky,xi
+TOT,Kudus,xi
+TOT,Maddison,xi
+TOT,Pedro Porro,xi
+TOT,Senesi,xi
+TOT,Solanke,xi
+TOT,Tel,xi
+TOT,Udogie,xi
+TOT,Van de Ven,xi

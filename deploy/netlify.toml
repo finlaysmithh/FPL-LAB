@@ -1,0 +1,24 @@
+# Landing page at /, the FPL Matrix app at /app.
+# Publish this whole folder — no build step runs on Netlify, the app's dist
+# is already compiled here (rebuild it locally with `npm run build` in webapp/).
+
+[build]
+  publish = "."
+
+# The app is a single-page React build: every /app/* deep link must serve
+# its index.html rather than 404.
+[[redirects]]
+  from = "/app/*"
+  to = "/app/index.html"
+  status = 200
+
+# Hashed filenames never change contents, so they can be cached forever.
+[[headers]]
+  for = "/app/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/hero.mp4"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

@@ -1,0 +1,159 @@
+{
+  "_readme": [
+    "Weekly team notes. YOU own this file \u2014 nothing here is generated or guessed.",
+    "Everything on a club page that is NOT in here (expected XI, injury flags,",
+    "penalty order, new-signing threats) is derived from real FPL data and the",
+    "model, and updates itself when you rerun the pipeline.",
+    "",
+    "Fill in what you know. Leave a field empty and the page simply omits it,",
+    "rather than showing a placeholder.",
+    "  headline  one line: the single thing to know about this club right now",
+    "  manager   what the manager has actually said, in quotes, with a date",
+    "  watch     free-text notes: minutes battles, tactical shifts, rumours",
+    "  penalties override the FPL order when you know better, e.g.",
+    "            'Isak took the last two in pre-season, Szoboszlai on the second'",
+    "  updated   date you last touched this club, shown on the page"
+  ],
+  "teams": {
+    "ARS": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "AVL": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "BOU": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "BRE": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "BHA": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "CHE": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "COV": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "CRY": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "EVE": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "FUL": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "HUL": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "IPS": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "LEE": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "LIV": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "MCI": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "MUN": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "NEW": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "NFO": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "SUN": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    },
+    "TOT": {
+      "headline": "",
+      "manager": "",
+      "watch": "",
+      "penalties": "",
+      "updated": ""
+    }
+  }
+}

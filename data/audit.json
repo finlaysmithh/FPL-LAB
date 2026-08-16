@@ -1,0 +1,33 @@
+{
+  "current_gw": 1,
+  "n_players": 587,
+  "n_new_signings": 169,
+  "n_club_changes": 41,
+  "n_pen_takers": 65,
+  "n_no_pl_history": 242,
+  "prior_season_used": "2025-26",
+  "current_season": "2026-27",
+  "note": "Pre-season build: all *_now columns are correctly zero; projections run 100% on real prior-season data via the credibility blend. Injury flags unavailable pre-season.",
+  "teams": [
+    "ARS",
+    "AVL",
+    "BHA",
+    "BOU",
+    "BRE",
+    "CHE",
+    "COV",
+    "CRY",
+    "EVE",
+    "FUL",
+    "HUL",
+    "IPS",
+    "LEE",
+    "LIV",
+    "MCI",
+    "MUN",
+    "NEW",
+    "NFO",
+    "SUN",
+    "TOT"
+  ]
+}

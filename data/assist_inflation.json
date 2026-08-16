@@ -1,0 +1,14 @@
+{
+  "positional_priors": {
+    "DEF": 1.24,
+    "FWD": 1.896,
+    "GK": 1.508,
+    "MID": 1.353
+  },
+  "league_ratio": 1.39,
+  "credibility": 0.25,
+  "k": 4.0,
+  "oos_mae_flat": 1.9011,
+  "oos_mae_fitted": 1.8932,
+  "n_pairs": 192
+}

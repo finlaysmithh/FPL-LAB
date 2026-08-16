@@ -1,0 +1,30 @@
+[
+  {
+    "season": "2025-26",
+    "prior_season": "2024-25",
+    "n": 10448,
+    "n_gws": 35,
+    "mae": 2.061,
+    "spearman": 0.328,
+    "top20_avg": 4.95,
+    "field_avg": 3.03,
+    "calibration_ratio": 0.717,
+    "model_mean": 2.17,
+    "real_mean": 3.025,
+    "rmse": 3.078,
+    "pearson": 0.281,
+    "capt_model": 7.46,
+    "capt_best": 17.23,
+    "capt_field": 3.03,
+    "capt_capture": 0.312,
+    "hit5": 0.097,
+    "hit10": 0.114,
+    "hit20": 0.196,
+    "top5_pts": 5.39,
+    "top10_pts": 5.04,
+    "early_mae": 1.997,
+    "early_spearman": 0.3383,
+    "early_capt": 10.0,
+    "early_hit20": 0.229
+  }
+]

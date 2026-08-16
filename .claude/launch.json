@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fpl-lab",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5199", "--strictPort"],
+      "port": 5199,
+      "cwd": "webapp"
+    },
+    {
+      "name": "fpl-landing",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5200"],
+      "port": 5200,
+      "cwd": "landing"
+    }
+  ]
+}

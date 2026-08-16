@@ -1,0 +1,52 @@
+# Overrides win over scraped data. Lines starting with # are ignored.
+#
+# Two kinds of thing belong here:
+#
+# 1. Production priors for players with no usable Understat history — a signing
+#    from outside the top five leagues, or a promoted-club player with no
+#    top-flight record. Columns: is_new_signing, prior_league, prior_team_xg90,
+#    xg90_prior, xa90_prior.
+#
+# 2. Minutes, when the model's ambiguity has already been resolved in real life.
+#    The minutes guard shrinks last season's minutes toward what a player's
+#    price implies, because it cannot tell an injured starter from a rotation
+#    player — both look like "not many minutes". When you KNOW which one it is,
+#    say so here:
+#
+#      fit_starter=True    Floor him at what a fit player of his price plays.
+#                          Use for a player who missed last season through a
+#                          long-term injury and is fit and starting now. This
+#                          floors rather than overwrites, so a player whose own
+#                          record already beats his price keeps his record.
+#
+#      mins_share_override Hand-set the minutes share directly, 0..1. Beats
+#                          every model path including fit_starter. 1.0 = every
+#                          minute of every game; 0.85 is a typical nailed
+#                          starter once you allow for rests and knocks.
+#
+#    Match on fpl_id where you can — web_name is ambiguous (there are two
+#    Palmers in the 2026/27 registry).
+#
+# Anything left blank is not overridden, so a row may set only one field.
+#
+fpl_id,web_name,fit_starter,mins_share_override
+# Season-long injuries last term; both fit and starting for 2026/27, so their
+# 2025/26 minutes describe the injury rather than their role. Without this
+# Colwill projects at 30 mins/game (barely clear of the 25-minute cutoff that
+# removes a player from the optimiser entirely) and Isak at 41.
+149,Colwill,True,
+379,Isak,True,
+# The mirror case, and the one the model can least see: a genuine starter who
+# moved club to sit on the bench. Dubravka's 3,150 minutes last season are real
+# and are exactly why he projected 84 mins/game and third-best keeper in the
+# game — his record is a perfect description of a role he no longer has. A
+# backup keeper plays only when the first choice is hurt, so 0.03 (under three
+# minutes a game) puts him below the 25-minute cutoff and out of the optimiser.
+497,Dubravka,,0.03
+# Arsenal's first-choice right winger. His 2025/26 share of 0.67 is an
+# injury-hit season read as a permanent demotion, and Arsenal are deep enough
+# that the squad-minute budget then ranked him behind their own fringe — 31
+# minutes a game for a player who starts when fit. fit_starter FLOORS him at
+# what a fit player of his price plays; it does not overwrite a better record.
+,Saka,True,
+
