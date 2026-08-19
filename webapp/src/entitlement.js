@@ -33,6 +33,12 @@ const DEFAULT = {
   freeRatingUsed: false,
   ratedAt: null,       // ISO date the free rating was spent
   ratedSquad: null,    // the fifteen it was spent on, for the lock banner
+  // The signed-in account, or null. PLACEHOLDER identity: an email the user
+  // types, kept on this device — it exists so the app can already behave
+  // differently for signed-in users (a saved team survives a visit; an
+  // anonymous team does not). When Google sign-in lands (see AGENTS.md) this
+  // becomes the server's session and only this module changes.
+  user: null,          // { email, since } | null
 };
 
 let state = { ...DEFAULT };
@@ -61,27 +67,52 @@ export function isPremium() {
   return state.tier === "premium";
 }
 
-/** May the user change their squad right now? Free users can, until the free
- *  rating is spent; premium users always can. */
+// The rating allowance belongs to the ACCOUNT (AGENTS.md is explicit about
+// this), so an anonymous visitor cannot spend it and, symmetrically, cannot be
+// locked by it: their team is ephemeral — blank on every visit — which is its
+// own tier. Sign in to rate; rate and the saved squad freezes.
+
+/** May the user change their squad right now? Anonymous teams are ephemeral
+ *  and always editable; a signed-in free account edits until the free rating
+ *  is spent; premium always can. */
 export function canEditSquad() {
-  return isPremium() || !state.freeRatingUsed;
+  return isPremium() || !isSignedIn() || !state.freeRatingUsed;
 }
 
-/** Has the squad been rated (so the rating panels should show)? */
+/** Has this account rated its squad (so the rating panels should show)? */
 export function hasRated() {
-  return isPremium() || state.freeRatingUsed;
+  return isPremium() || (isSignedIn() && state.freeRatingUsed);
 }
 
-/** Spend the one free rating on this squad. Idempotent: rating the same
- *  squad twice is one rating, not two. */
+/** Spend the account's one free rating on this squad. Requires sign-in;
+ *  idempotent — rating the same squad twice is one rating, not two. */
 export function consumeFreeRating(squadIds) {
-  if (isPremium() || state.freeRatingUsed) return;
+  if (!isSignedIn() || isPremium() || state.freeRatingUsed) return;
   state = {
     ...state,
     freeRatingUsed: true,
     ratedAt: new Date().toISOString(),
     ratedSquad: [...squadIds],
   };
+  persist();
+  emit();
+}
+
+export function isSignedIn() {
+  return state.user != null;
+}
+
+/** Sign in with an email. Placeholder auth (see `user` above): it grants no
+ *  access to anything server-side because nothing server-side exists yet —
+ *  it is an identity to hang persistence on, nothing more. */
+export function signIn(email) {
+  state = { ...state, user: { email: String(email), since: new Date().toISOString() } };
+  persist();
+  emit();
+}
+
+export function signOut() {
+  state = { ...state, user: null };
   persist();
   emit();
 }

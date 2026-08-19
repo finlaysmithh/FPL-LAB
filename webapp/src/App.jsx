@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { DATA, QUOTA, byId, clubCounts, storage, useIsWide } from "./logic.js";
-import { canEditSquad } from "./entitlement.js";
+import { canEditSquad, isSignedIn, signIn, signOut, useEntitlement } from "./entitlement.js";
 import { SwapSheet } from "./SwapSheet.jsx";
 import { SquadTab, ValueTab } from "./tabs.jsx";
 import { OptimalTab } from "./Optimal.jsx";
@@ -126,16 +126,37 @@ export default function App() {
   const [psDismissed, setPsDismissed] = useState(
     () => localStorage.getItem("fpllab:ps_dismissed") === "1");
 
+  const ent = useEntitlement();
+
+  // ---- squad persistence, keyed to sign-in --------------------------------
+  //
+  // A SAVED team belongs to an account; an anonymous visitor starts blank on
+  // every visit. Anonymous edits go to sessionStorage rather than nowhere, so
+  // a refresh mid-build does not destroy fifteen picks — the team is blank
+  // "every time you come back", not "every time the page hiccups". Signing in
+  // is what promotes the team to durable storage; Clear squad is what removes
+  // it. When real accounts exist this split survives: the durable half moves
+  // behind the API and the anonymous half stays exactly this.
   useEffect(() => {
     (async () => {
       try {
-        const s = await storage.get("my_squad");
-        if (s?.value) {
-          const ids = JSON.parse(s.value);
-          if (Array.isArray(ids)) setSquad(ids.filter((i) => byId[i]));
+        if (isSignedIn()) {
+          const s = await storage.get("my_squad");
+          if (s?.value) {
+            const ids = JSON.parse(s.value);
+            if (Array.isArray(ids)) setSquad(ids.filter((i) => byId[i]));
+          }
+          const c = await storage.get("capt");
+          if (c?.value) setCapt(JSON.parse(c.value));
+        } else {
+          const s = sessionStorage.getItem("fpllab:session_squad");
+          if (s) {
+            const ids = JSON.parse(s);
+            if (Array.isArray(ids)) setSquad(ids.filter((i) => byId[i]));
+          }
+          const c = sessionStorage.getItem("fpllab:session_capt");
+          if (c) setCapt(JSON.parse(c));
         }
-        const c = await storage.get("capt");
-        if (c?.value) setCapt(JSON.parse(c.value));
       } catch (e) { /* nothing saved yet */ }
       setLoaded(true);
     })();
@@ -143,11 +164,62 @@ export default function App() {
 
   const saveSquad = useCallback(async (ids) => {
     setSquad(ids);
-    try { await storage.set("my_squad", JSON.stringify(ids)); } catch (e) {}
+    try {
+      if (isSignedIn()) await storage.set("my_squad", JSON.stringify(ids));
+      else sessionStorage.setItem("fpllab:session_squad", JSON.stringify(ids));
+    } catch (e) {}
   }, []);
   const saveCapt = useCallback(async (id) => {
     setCapt(id);
-    try { await storage.set("capt", JSON.stringify(id)); } catch (e) {}
+    try {
+      if (isSignedIn()) await storage.set("capt", JSON.stringify(id));
+      else sessionStorage.setItem("fpllab:session_capt", JSON.stringify(id));
+    } catch (e) {}
+  }, []);
+
+  // Signing in keeps whatever is on screen: a draft in progress is the thing
+  // the user is signing in to save, so it wins over an older stored team —
+  // unless the screen is empty, in which case the stored team comes back.
+  const handleSignIn = useCallback(async () => {
+    const email = window.prompt(
+      "Sign in with your email to keep your team saved between visits:");
+    if (email == null) return;
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      window.alert("That doesn't look like an email address.");
+      return;
+    }
+    signIn(email.trim());
+    try {
+      // A locked account's saved team wins over an anonymous draft — signing
+      // out to rebuild and signing back in must not overwrite the squad the
+      // free rating froze.
+      if (squad.length > 0 && canEditSquad()) {
+        await storage.set("my_squad", JSON.stringify(squad));
+        await storage.set("capt", JSON.stringify(capt));
+      } else {
+        const s = await storage.get("my_squad");
+        if (s?.value) {
+          const ids = JSON.parse(s.value);
+          if (Array.isArray(ids)) setSquad(ids.filter((i) => byId[i]));
+        }
+        const c = await storage.get("capt");
+        if (c?.value) setCapt(JSON.parse(c.value));
+      }
+    } catch (e) {}
+  }, [squad, capt]);
+
+  // Signing out leaves the saved team in place for the next sign-in and
+  // returns the page to the anonymous state: blank.
+  const handleSignOut = useCallback(() => {
+    if (!window.confirm(
+      "Sign out? Your saved team stays on your account — this page goes back to blank.")) return;
+    signOut();
+    try {
+      sessionStorage.removeItem("fpllab:session_squad");
+      sessionStorage.removeItem("fpllab:session_capt");
+    } catch (e) {}
+    setSquad([]);
+    setCapt(null);
   }, []);
 
   // Opening the market: on a wide screen the panel is already beside the pitch,
@@ -220,6 +292,18 @@ export default function App() {
             2026/27 · GW{DATA.gws[0]}–{DATA.gws[DATA.gws.length - 1]}
             {DATA.built && <em className="built-stamp">{DATA.built.slice(0, 10)}</em>}
           </span>
+          {ent.user ? (
+            <button className="auth-btn" onClick={handleSignOut}
+              title={`Signed in as ${ent.user.email}`}>
+              <span className="auth-who">{ent.user.email}</span>
+              Sign out
+            </button>
+          ) : (
+            <button className="auth-btn cta" onClick={handleSignIn}
+              title="Sign in to keep your team saved between visits">
+              Sign in to save
+            </button>
+          )}
         </div>
       </header>
 

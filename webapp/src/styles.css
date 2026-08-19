@@ -103,6 +103,37 @@ input { font-family: inherit; }
 }
 .top-row .season-chip { margin-left: auto; }
 
+/* Sign in / sign out, in the header. The identity is a means to an end — a
+   saved team — so the signed-out label says what signing in buys. */
+.auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.auth-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+.auth-btn.cta { color: var(--green); border-color: var(--green); }
+.auth-btn .auth-who {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 560px) {
+  .auth-btn .auth-who { display: none; }
+}
+
 /* Hidden on phones: there is no rail to collapse, the nav is along the bottom. */
 .rail-toggle {
   display: none;

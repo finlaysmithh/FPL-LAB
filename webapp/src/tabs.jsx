@@ -20,7 +20,7 @@ import { StrategyBar } from "./Strategy.jsx";
 import { QualityPanel } from "./Quality.jsx";
 import { ManagerCard, buildAdvice } from "./Manager.jsx";
 import { Pitch, PitchSvg } from "./Pitch.jsx";
-import { canEditSquad, consumeFreeRating, hasRated, useEntitlement } from "./entitlement.js";
+import { canEditSquad, consumeFreeRating, hasRated, isSignedIn, useEntitlement } from "./entitlement.js";
 
 const xiSum = (ids, gi) => bestXI(ids, gi).xi.reduce((s, p) => s + p.g[gi], 0);
 
@@ -266,18 +266,33 @@ const TARGET_ROWS = 32;
 // boundary); when accounts exist the server owns the flag and these render
 // its answer.
 function RateGate({ squad }) {
+  const signedIn = isSignedIn();
   return (
     <div className="rate-gate">
       <div className="rate-gate-body">
         <b>Ready to rate this team?</b>
         <span>
           Keep tinkering for as long as you like — transfers and edits are
-          free until you rate. Your account includes <em>one</em> free squad
-          rating; after you use it, changing this team needs Premium.
+          free until you rate. {signedIn
+            ? <>Your account includes <em>one</em> free squad rating; after
+              you use it, changing this team needs Premium.</>
+            : <>Your <em>one</em> free rating belongs to your account, so
+              sign in first — that also keeps this team saved between
+              visits.</>}
         </span>
       </div>
-      <button className="btn primary" onClick={() => consumeFreeRating(squad)}>
-        Rate my team
+      <button className="btn primary" onClick={() => {
+        // The allowance is per-account, so an anonymous click routes to
+        // sign-in rather than silently spending a browser-scoped rating that
+        // clearing cookies would refill.
+        if (!signedIn) {
+          window.alert("Sign in first — use the “Sign in to save” button at "
+            + "the top of the page. Your free rating is tied to your account.");
+          return;
+        }
+        consumeFreeRating(squad);
+      }}>
+        {signedIn ? "Rate my team" : "Sign in to rate"}
       </button>
     </div>
   );
