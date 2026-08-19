@@ -2636,6 +2636,53 @@ input { font-family: inherit; }
 .lock-xp { color: var(--green); }
 .lock-gate { font-size: 0.68rem; color: var(--pink); }
 
+/* The "Don't include" panel is the same control with the sign flipped, so it
+   inherits everything and only the accents change: pink where the build-around
+   panel goes green, and a struck-through name on the chips, because a chip in
+   this list is a player being ruled OUT. */
+.lockbox.ban .lock-search:focus-within { border-color: var(--pink); color: var(--pink); }
+.lock-chip.ban { text-decoration: line-through; text-decoration-color: var(--pink); }
+.lock-chip.ban em { color: var(--pink); }
+
+/* ---- free-tier rating gate ---- */
+/* The card that stands where the rating verdict will appear, so the free
+   rating reads as revealing THIS panel rather than unlocking some abstract
+   feature elsewhere. */
+.rate-gate {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.rate-gate-body { flex: 1; min-width: 220px; }
+.rate-gate-body b { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+.rate-gate-body span { font-size: 0.82rem; color: var(--ink-dim); line-height: 1.5; }
+.rate-gate-body em { font-style: normal; color: var(--green); font-weight: 700; }
+.rate-gate .btn { flex-shrink: 0; margin: 0; }
+
+/* The state after the rating is spent: the squad is frozen and every panel
+   below reads as the record of the team that was rated. */
+.lock-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 13px 15px;
+  margin-bottom: 14px;
+}
+.lock-banner svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+.lock-banner b { display: block; font-size: 0.88rem; margin-bottom: 2px; }
+.lock-banner span { font-size: 0.8rem; color: var(--ink-dim); line-height: 1.5; }
+
 /* The number people actually want: what insisting on these players costs. */
 .lock-verdict {
   border-radius: var(--radius);

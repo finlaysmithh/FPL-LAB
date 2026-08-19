@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { DATA, QUOTA, byId, clubCounts, storage, useIsWide } from "./logic.js";
+import { canEditSquad } from "./entitlement.js";
 import { SwapSheet } from "./SwapSheet.jsx";
 import { SquadTab, ValueTab } from "./tabs.jsx";
 import { OptimalTab } from "./Optimal.jsx";
@@ -163,6 +164,10 @@ export default function App() {
   }, []);
 
   const swapIn = useCallback((id) => {
+    // Free-tier lock: once the one free rating is spent the squad is frozen.
+    // The Squad tab explains why; this guard covers the mobile swap sheet and
+    // the builder path, which write through here rather than editSquad.
+    if (!canEditSquad()) { setSwap(null); return; }
     const m = swap;
     if (m?.out != null) {
       saveSquad(squad.map((x) => (x === m.out ? id : x)));
@@ -179,6 +184,11 @@ export default function App() {
   }, [swap, squad, capt, wide, saveSquad, saveCapt]);
 
   const useSquad = useCallback((ids) => {
+    if (!canEditSquad()) {
+      window.alert("Your free team rating has been used, so your squad is "
+        + "locked — replacing it is a Premium feature.");
+      return;
+    }
     if (squad.length > 0 &&
         !window.confirm("Replace your current squad with this one?")) return;
     saveSquad([...ids]);

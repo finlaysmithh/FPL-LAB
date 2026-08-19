@@ -87,23 +87,31 @@ function StratIcon({ k }) {
   );
 }
 
-// ---- lock picker ----------------------------------------------------------
-// "Show me the best squad that HAS to contain these players." The whole point
-// is that it is a constraint, not a preference — so the panel also reports what
-// the constraint costs, which is the number people actually want and never get.
-function LockPicker({ locks, setLocks }) {
+// ---- constraint pickers ---------------------------------------------------
+// "Show me the best squad that HAS to contain these players" — and its mirror,
+// "the best squad WITHOUT this one". The whole point is that both are
+// constraints, not preferences — so the panel also reports what the constraint
+// costs, which is the number people actually want and never get.
+//
+// One component, two modes, because the two panels are the same control with
+// the sign flipped: search, chips, the same legality rules. `taken` is every
+// player already claimed by EITHER list — a player locked in and banned at the
+// same time is a contradiction the solver would only report as infeasible, so
+// the picker refuses to construct it in the first place.
+function ConstraintPicker({ mode, ids, setIds, taken }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
+  const ban = mode === "ban";
 
   const matches = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return [];
     return DATA.players
-      .filter((p) => p.n.toLowerCase().includes(term) && !locks.includes(p.i))
+      .filter((p) => p.n.toLowerCase().includes(term) && !taken.includes(p.i))
       .sort((a, b) => b.x - a.x)
       .slice(0, 7);
-  }, [q, locks]);
+  }, [q, taken]);
 
   useEffect(() => {
     const onDoc = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
@@ -111,31 +119,31 @@ function LockPicker({ locks, setLocks }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const add = (p) => { setLocks([...locks, p.i]); setQ(""); setOpen(false); };
+  const add = (p) => { setIds([...ids, p.i]); setQ(""); setOpen(false); };
 
   return (
-    <div className="lockbox" ref={boxRef}>
+    <div className={`lockbox ${ban ? "ban" : ""}`} ref={boxRef}>
       <div className="lockbox-head">
         <div>
-          <b>Build around</b>
-          <span>Players the squad must contain</span>
+          <b>{ban ? "Don't include" : "Build around"}</b>
+          <span>{ban ? "Players the squad must leave out" : "Players the squad must contain"}</span>
         </div>
-        {locks.length > 0 && (
-          <button className="lock-clear" onClick={() => setLocks([])}>Clear</button>
+        {ids.length > 0 && (
+          <button className="lock-clear" onClick={() => setIds([])}>Clear</button>
         )}
       </div>
 
-      {locks.length > 0 && (
+      {ids.length > 0 && (
         <div className="lock-chips">
-          {locks.map((i) => {
+          {ids.map((i) => {
             const p = byId[i];
             if (!p) return null;
             return (
-              <span key={i} className={`lock-chip ${p.p}`}>
+              <span key={i} className={`lock-chip ${p.p} ${ban ? "ban" : ""}`}>
                 <em>{p.p}</em>
                 {p.n}
                 <i>{money(p.c)}</i>
-                <button onClick={() => setLocks(locks.filter((x) => x !== i))}
+                <button onClick={() => setIds(ids.filter((x) => x !== i))}
                   aria-label={`Remove ${p.n}`}>×</button>
               </span>
             );
@@ -148,7 +156,8 @@ function LockPicker({ locks, setLocks }) {
           strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
         </svg>
-        <input value={q} placeholder="Add a player — try Haaland"
+        <input value={q}
+          placeholder={ban ? "Exclude a player — try Salah" : "Add a player — try Haaland"}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)} />
       </div>
@@ -156,8 +165,12 @@ function LockPicker({ locks, setLocks }) {
       {open && matches.length > 0 && (
         <ul className="lock-results">
           {matches.map((p) => (
+            // Locking a sub-25-minute player is refused — the optimiser would
+            // never pick him, so the lock could only mislead. Banning one is
+            // allowed but flagged: it is harmless, because he was never
+            // getting in anyway.
             <li key={p.i}>
-              <button onClick={() => add(p)} disabled={isGated(p)}>
+              <button onClick={() => add(p)} disabled={!ban && isGated(p)}>
                 <span className={`lock-pos ${p.p}`}>{p.p}</span>
                 <span className="lock-name">{p.n}</span>
                 <span className="lock-team">{p.t}</span>
@@ -309,6 +322,7 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
   const [endGi, setEndGi] = useState(Math.min(4, DATA.gws.length - 1));
   const [weighting, setWeighting] = useState("decay");
   const [locks, setLocks] = useState([]);
+  const [bans, setBans] = useState([]);
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(true);
 
@@ -333,16 +347,16 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
   // must never look like a number that has settled.
   useEffect(() => {
     const weeks = strat.weeks(gi, activeSpan, weightMode);
-    const opts = { lockIds: locks };
+    const opts = { lockIds: locks, banIds: bans };
     let alive = true;
 
     const run = (tier) => {
       const t0 = performance.now();
       const locked = solveCached(weeks, opts, tier);
       // The unconstrained answer is solved too, purely so the panel can say
-      // what the locks cost — but only at the exact tier, since it costs a
-      // second search and nothing reads it mid-drag.
-      const free = locks.length && tier === "exact"
+      // what the locks and exclusions cost — but only at the exact tier, since
+      // it costs a second search and nothing reads it mid-drag.
+      const free = (locks.length || bans.length) && tier === "exact"
         ? solveCached(weeks, {}, "exact") : locked;
       const advice = locked.feasible && tier === "exact"
         ? chipAdvice(locked.squad, gi, Math.max(activeSpan, 6), OPTIMAL)
@@ -357,7 +371,7 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
     const quick = setTimeout(() => run("provisional"), 16);
     const exact = setTimeout(() => run("exact"), 300);
     return () => { alive = false; clearTimeout(quick); clearTimeout(exact); };
-  }, [stratKey, gi, activeSpan, weightMode, locks.join(",")]);
+  }, [stratKey, gi, activeSpan, weightMode, locks.join(","), bans.join(",")]);
 
   // Warm the cache for the windows in GW1-10 during idle time, so a drag that
   // arrives later lands on a hit rather than a solve. Cancelled on unmount.
@@ -421,7 +435,8 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
         <div className="solving" role="status">
           <span className="spinner" aria-hidden="true" />
           Solving {strat.name.toLowerCase()} for GW{DATA.gws[gi]}
-          {locks.length ? ` around ${locks.length} locked player${locks.length > 1 ? "s" : ""}` : ""}…
+          {locks.length ? ` around ${locks.length} locked player${locks.length > 1 ? "s" : ""}` : ""}
+          {bans.length ? ` without ${bans.length} excluded player${bans.length > 1 ? "s" : ""}` : ""}…
         </div>
       )}
 
@@ -454,18 +469,20 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
             {` · GW${DATA.gws[gi]} alone ${thisWeek.pts.toFixed(1)} pts`}
           </p>
 
-          {locks.length > 0 && (
+          {(locks.length > 0 || bans.length > 0) && (
             <div className={`lock-verdict ${lockCost > 4 ? "warn" : lockCost > 1.5 ? "" : "good"}`}>
               <b>
                 {lockCost < 0.05
-                  ? "Your locks cost you nothing."
-                  : `Locking ${locks.length === 1 ? "him" : "them"} costs ${lockCost.toFixed(1)} pts.`}
+                  ? `Your ${locks.length && bans.length ? "constraints" : locks.length ? "locks" : "exclusions"} cost you nothing.`
+                  : `${locks.length && bans.length ? "Your locks and exclusions together cost" : locks.length ? "Locking them costs" : "Ruling them out costs"} ${lockCost.toFixed(1)} pts.`}
               </b>
               <span>
                 {lockCost < 0.05
-                  ? "Every one of them is in the unconstrained optimal squad anyway — you were right."
+                  ? locks.length
+                    ? "The unconstrained optimal squad already agrees with every one of them — you were right."
+                    : "None of them makes the unconstrained optimal squad anyway — ruling them out was free."
                   : lockCost < 1.5
-                    ? "Cheap enough to be worth it if you rate them, or want the differential."
+                    ? "Cheap enough to be worth it if you hold the view, or want the differential."
                     : lockCost < 4
                       ? `The free build scores ${res.free.pts.toFixed(1)} over this horizon against your ${r.pts.toFixed(1)}. A real but survivable cost.`
                       : `The free build scores ${res.free.pts.toFixed(1)} against your ${r.pts.toFixed(1)}. That is a lot of points to pay for a preference.`}
@@ -581,7 +598,10 @@ export function OptimalTab({ gi, setGi, onUseSquad }) {
 
           </div>
           <aside className="opt-split-side">
-            <LockPicker locks={locks} setLocks={setLocks} />
+            <ConstraintPicker mode="lock" ids={locks} setIds={setLocks}
+              taken={[...locks, ...bans]} />
+            <ConstraintPicker mode="ban" ids={bans} setIds={setBans}
+              taken={[...locks, ...bans]} />
           </aside>
           </div>
 

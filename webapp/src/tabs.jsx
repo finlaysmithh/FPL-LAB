@@ -20,6 +20,7 @@ import { StrategyBar } from "./Strategy.jsx";
 import { QualityPanel } from "./Quality.jsx";
 import { ManagerCard, buildAdvice } from "./Manager.jsx";
 import { Pitch, PitchSvg } from "./Pitch.jsx";
+import { canEditSquad, consumeFreeRating, hasRated, useEntitlement } from "./entitlement.js";
 
 const xiSum = (ids, gi) => bestXI(ids, gi).xi.reduce((s, p) => s + p.g[gi], 0);
 
@@ -253,12 +254,65 @@ function ShapePicker({ squad, gi, current, onPick }) {
 // short AND padded with players who do not start, which is the worst of both.
 const TARGET_ROWS = 32;
 
+// ---- free-tier rating gate --------------------------------------------
+// The free tier meters the RATING, not the editing. Building the fifteen and
+// changing your mind is free and unlimited; the one thing a free account
+// spends is the moment it asks "how good is this?" — and once it has spent
+// it, the squad it was spent on is frozen. An earlier version had this
+// backwards and locked transfers BEFORE the first rating, which charges for
+// assembling the question instead of for the answer.
+//
+// Both components are display-level today (see entitlement.js for the trust
+// boundary); when accounts exist the server owns the flag and these render
+// its answer.
+function RateGate({ squad }) {
+  return (
+    <div className="rate-gate">
+      <div className="rate-gate-body">
+        <b>Ready to rate this team?</b>
+        <span>
+          Keep tinkering for as long as you like — transfers and edits are
+          free until you rate. Your account includes <em>one</em> free squad
+          rating; after you use it, changing this team needs Premium.
+        </span>
+      </div>
+      <button className="btn primary" onClick={() => consumeFreeRating(squad)}>
+        Rate my team
+      </button>
+    </div>
+  );
+}
+
+function LockBanner({ ratedAt }) {
+  const when = ratedAt ? new Date(ratedAt).toLocaleDateString() : null;
+  return (
+    <div className="lock-banner" role="status">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+      <div>
+        <b>Free rating used{when ? ` on ${when}` : ""} — this squad is locked.</b>
+        <span>Your rating stays right here. Making transfers, planning weeks or
+          re-rating a changed team is a Premium feature.</span>
+      </div>
+    </div>
+  );
+}
+
 // ============ MY SQUAD (main page) ============
 export function SquadTab({
   gi, setGi, squad, capt, saveSquad, saveCapt, openSwap, wide, market, side, setSide,
   setMarketPos, onSwapIn,
 }) {
   const [sheet, setSheet] = useState(null); // player action sheet
+  // Free-tier state. `rated` decides whether the rating panels render;
+  // `editable` decides whether squad mutations are accepted. Subscribed via
+  // the hook so spending the rating re-renders this page immediately.
+  const ent = useEntitlement();
+  const rated = hasRated();
+  const editable = canEditSquad();
   const [chips, setChips] = useState({
     wildcardGw: null, freeHitGw: null, benchBoostGw: null, tripleCaptainGw: null });
   // The season plan, persisted. A plan a user loses on refresh is not a plan.
@@ -374,6 +428,10 @@ export function SquadTab({
   // IS the base. Viewing any later week records the difference as that week's
   // transfers and leaves everything before it untouched.
   const editSquad = (nextIds) => {
+    // The single write path is also the single place the free-tier lock bites:
+    // every transfer, market swap and pitch edit funnels through here, so one
+    // check covers them all. The banner above the page says why.
+    if (!editable) return;
     if (!complete || gi === 0 || !plan?.base?.length) return saveSquad(nextIds);
     const at = planned[gi];
     if (!at) return saveSquad(nextIds);
@@ -476,6 +534,7 @@ export function SquadTab({
   // Swaps go through `editSquad`, so a transfer made while viewing GW3 is
   // recorded as a GW3 move rather than silently rewriting your GW1 team.
   const swapInHere = (id) => {
+    if (!editable) { setMkt(null); return; }
     if (mkt?.out != null) {
       editSquad(weekSquad.map((x) => (x === mkt.out ? id : x)));
       if (capt === mkt.out) saveCapt(null);
@@ -495,6 +554,8 @@ export function SquadTab({
     <div className="page">
       <Timeline gi={gi} setGi={setGi} weeks={planned} />
 
+      {!editable && <LockBanner ratedAt={ent.ratedAt} />}
+
       {/* THE PLAN SPANS BOTH COLUMNS.
           It is the answer the page exists to give, so it gets the full width at
           the top rather than a third of it in a column. Everything below is
@@ -510,8 +571,13 @@ export function SquadTab({
           look at, and burying it under three analysis panels meant scrolling
           past a wall of numbers to reach your own team. Everything below it is
           commentary on what is above it. */}
-      {/* How good is this, with the scale drawn rather than asserted. */}
-      <QualityPanel squad={weekSquad} gi={gi} capt={capt} />
+      {/* How good is this, with the scale drawn rather than asserted. The
+          verdict is the metered product: a free account sees it after
+          explicitly spending its one rating, not as a live readout that
+          would burn the allowance just by opening the page. */}
+      {rated
+        ? <QualityPanel squad={weekSquad} gi={gi} capt={capt} />
+        : <RateGate squad={squad} />}
 
       <Tiles items={[
         [`GW${DATA.gws[gi]} projected`, (rating?.now.points ?? per[gi]).toFixed(1), "gold"],
@@ -550,7 +616,7 @@ export function SquadTab({
       </div>
 
       <div className="col-side">
-      {wide && (
+      {wide && editable && (
         <div className="seg" style={{ marginBottom: 14 }}>
           <button className={`seg-btn ${side === "plan" ? "on" : ""}`}
             onClick={() => setSide("plan")}>Plan</button>
@@ -559,7 +625,7 @@ export function SquadTab({
         </div>
       )}
 
-      {wide && side === "market" ? (
+      {wide && editable && side === "market" ? (
         // Browsing the market, as opposed to replacing a named player. Reads
         // and writes `weekSquad` so it agrees with the pitch beside it.
         <MarketPanel squad={weekSquad} gi={gi} out={null}
@@ -575,7 +641,10 @@ export function SquadTab({
           and shortens the page by roughly a third. */}
       <DecisionPanel squad={weekSquad} capt={capt} gi={gi} free={free} part="body" />
 
-      <WeekBar gi={gi} setGi={setGi} plan={plan} setPlan={setPlan} squad={squad} />
+      {/* Week-planning writes (transfers per week, chip placement) are squad
+          changes too, so the lock covers them; navigation still works. */}
+      <WeekBar gi={gi} setGi={setGi} plan={plan}
+        setPlan={editable ? setPlan : () => {}} squad={squad} />
 
       {/* The gaffer's card is GONE, and this is the third and last copy of the
           same advice to go. It restated the transfer verdict the plan bar gives
@@ -583,10 +652,12 @@ export function SquadTab({
           so the page could read "roll your transfer" twice and "play your bench
           boost" once and leave a user to referee it. One question, one answer. */}
 
-      <details className="dq-more">
-        <summary>Horizon breakdown</summary>
-        <RatingStrip rating={rating} />
-      </details>
+      {rated && (
+        <details className="dq-more">
+          <summary>Horizon breakdown</summary>
+          <RatingStrip rating={rating} />
+        </details>
+      )}
 
       <details className="plan-fold">
         <summary>
@@ -598,13 +669,17 @@ export function SquadTab({
 
       {/* Destructive, and demoted to look it. It sat here as a full-width
           button with the same weight as the analysis above it. */}
-      <button className="btn danger-quiet"
-        onClick={() => {
-          if (window.confirm("Clear your squad and start again? This cannot be undone."))
-            { saveSquad([]); saveCapt(null); }
-        }}>
-        Clear squad
-      </button>
+      {/* Clearing is a squad change like any other — a locked team stays
+          exactly as it was rated. */}
+      {editable && (
+        <button className="btn danger-quiet"
+          onClick={() => {
+            if (window.confirm("Clear your squad and start again? This cannot be undone."))
+              { saveSquad([]); saveCapt(null); }
+          }}>
+          Clear squad
+        </button>
+      )}
       </>
       )}
       </div>
@@ -649,17 +724,29 @@ export function SquadTab({
             <button className="btn ghost" onClick={() => { setSubSel(sheet.i); setSheet(null); }}>
               {xi.some((q) => q.i === sheet.i) ? "Move to the bench" : "Bring on"}
             </button>
-            <button className="btn primary" onClick={() => { setMkt({ out: sheet.i, pos: sheet.p }); setSheet(null); }}>
-              Transfer out for another {sheet.p}
-            </button>
-            <button className="btn quiet" onClick={() => {
-              // `weekSquad`, not `squad` — remove the man you are looking at.
-              editSquad(weekSquad.filter((x) => x !== sheet.i));
-              if (capt === sheet.i) saveCapt(null);
-              setSheet(null);
-            }}>
-              Remove from squad
-            </button>
+            {/* Mutation actions vanish rather than fail: a dead button on a
+                locked squad reads as a bug, an absent one reads as a rule.
+                Captaincy and bench order stay — arranging the eleven you
+                rated is not changing the fifteen. */}
+            {editable ? (
+              <>
+                <button className="btn primary" onClick={() => { setMkt({ out: sheet.i, pos: sheet.p }); setSheet(null); }}>
+                  Transfer out for another {sheet.p}
+                </button>
+                <button className="btn quiet" onClick={() => {
+                  // `weekSquad`, not `squad` — remove the man you are looking at.
+                  editSquad(weekSquad.filter((x) => x !== sheet.i));
+                  if (capt === sheet.i) saveCapt(null);
+                  setSheet(null);
+                }}>
+                  Remove from squad
+                </button>
+              </>
+            ) : (
+              <p className="action-note">
+                Free rating used — transfers on this squad need Premium.
+              </p>
+            )}
             <button className="btn quiet" onClick={() => setSheet(null)}>Close</button>
           </div>
         </div>
