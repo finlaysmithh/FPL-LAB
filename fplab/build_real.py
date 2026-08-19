@@ -346,6 +346,16 @@ def build(force: bool = False) -> dict:
     print(f"  {n_imp} players given price-implied production priors "
           f"(no usable PL history — foreign transfers, loans)")
 
+    # Overrides are re-applied AFTER the price proxy, because the proxy just
+    # overwrote every production prior for the no-history players — which is
+    # precisely the set overrides.csv exists to correct. Its own docstring
+    # says "replace the estimate with real numbers in data/overrides.csv",
+    # but on this path the estimate was replacing the override: a hand-set
+    # defcon90_prior for a new signing was computed at line one of this block
+    # and gone by line two. Applying the file twice is safe — it only ever
+    # sets the same declared values.
+    players = build_mod.apply_overrides(players)
+
     # A price-implied prior REPLACES the historical one, so the carried share
     # has to go with it — otherwise `blend` restates a stale share against the
     # new club and silently reinstates the record this step just decided was

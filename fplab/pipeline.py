@@ -100,9 +100,29 @@ def minutes_by_gameweek(players, fixtures, gws, season_start_year=2026):
 
     # A price-proxy signing's role score is the market's estimate of where he
     # ENDS UP, not where he starts. See config.SIGNING_BED_IN_*.
+    # A hand-set minutes share is exempt: overrides.csv documents that it
+    # "beats every model path", and the bed-in is a model path — it exists to
+    # temper a market guess, not a human's declared view that a signing walks
+    # straight into the XI.
+    manual_mins = (players.get("minutes_flag",
+                               pd.Series("", index=players.index))
+                   .fillna("") == "manual_minutes").to_numpy()
     is_signing = (players.get("price_implied_prior",
                               pd.Series(False, index=players.index))
-                  .fillna(False).astype(bool).to_numpy())
+                  .fillna(False).astype(bool).to_numpy()) & ~manual_mins
+
+    # The same declaration counts as EVIDENCE inside conservation. Everywhere
+    # else `roles.allocate` divides the world into measured players (whose own
+    # record claims a shirt) and unseen ones (who ride on a decaying pre-season
+    # guess). A hand-set share is a third thing — declared knowledge — and
+    # treating it as "unseen" put it in the guess bucket: the XI floor melted
+    # away over five weeks and water-filling diluted a declared starter among
+    # his club's fringe, so an override of 0.85 came out at 38 minutes a game.
+    # A full season of pseudo-minutes gives the declaration the same standing
+    # as a measured regular, which is exactly the claim the override makes.
+    evidence = pd.to_numeric(players.get("prior_minutes"),
+                             errors="coerce").fillna(0.0)
+    evidence[manual_mins] = evidence[manual_mins].clip(lower=3420.0)
 
     out = {}
     for j, gw in enumerate(gws):
@@ -153,7 +173,7 @@ def minutes_by_gameweek(players, fixtures, gws, season_start_year=2026):
                                a, mins_per_start=mps,
                                predicted_xi=players.get("predicted_xi"),
                                xi_floor_weight=xi_w,
-                               evidence_minutes=players.get("prior_minutes"))
+                               evidence_minutes=evidence)
         probs = roles.probabilities(alloc["mins_share"], nailed=alloc["nailed"] * a)
         probs.index = players.index
         frame = pd.concat([alloc, probs], axis=1)

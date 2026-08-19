@@ -29,7 +29,15 @@
 #
 # Anything left blank is not overridden, so a row may set only one field.
 #
-fpl_id,web_name,fit_starter,mins_share_override
+# defcon90_prior hand-sets the defensive-contribution rate (CBIRT per 90 for
+# midfielders, CBIT for defenders) for a player whose price-implied proxy is
+# known to be wrong. The proxy is a same-price positional median, which prices
+# a destroyer-type signing at the rate of an ordinary midfielder — exactly the
+# player profile the market underprices, because FPL price tracks attacking
+# output. Calibration: the 2025/26 MID field put the 90th percentile at 11.3
+# and the top of the league (Anderson) at 13.3.
+#
+fpl_id,web_name,fit_starter,mins_share_override,defcon90_prior
 # Season-long injuries last term; both fit and starting for 2026/27, so their
 # 2025/26 minutes describe the injury rather than their role. Without this
 # Colwill projects at 30 mins/game (barely clear of the 25-minute cutoff that
@@ -48,5 +56,14 @@ fpl_id,web_name,fit_starter,mins_share_override
 # that the squad-minute budget then ranked him behind their own fringe — 31
 # minutes a game for a player who starts when fit. fit_starter FLOORS him at
 # what a fit player of his price plays; it does not overwrite a better record.
-,Saka,True,
+,Saka,True,,
+# Brentford's summer signing (there are two Sangarés — Forest's is 488, so
+# match on fpl_id). Named in every predicted GW1 XI as the starting holding
+# midfielder, but with no PL history he lands on the £5.5m-MID price proxy:
+# a 7.7 CBIRT/90 defcon rate and a bedded-in role that bottoms out at 24
+# expected minutes in GW2 — for a player signed to start. The minutes share is
+# a nailed starter's 0.85; the defcon rate reflects what he was bought as, a
+# ball-winner in the Caicedo/Lerma mould (they measured 11.6 and 11.2 last
+# season, and his positional twin at Forest measured 11.0).
+565,Sangaré,,0.85,11.5
 
