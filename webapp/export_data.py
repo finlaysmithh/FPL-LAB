@@ -9,10 +9,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 from fplab import availability, minutes, pipeline
 
-GWS = list(range(1, 20))   # first half of the season
 OUT = Path(__file__).resolve().parent
 
 players, matchlog, fixtures = pipeline.load()
+# Nineteen gameweeks from the next deadline. Pre-season that is GW1-19; once
+# the season is under way the window rolls forward, because a projection for
+# a gameweek already played is not a decision anyone can still make.
+_audit = json.loads((OUT.parent / "data" / "audit.json").read_text()) \
+    if (OUT.parent / "data" / "audit.json").exists() else {}
+_start = int(_audit.get("current_gw", 1))
+GWS = list(range(_start, min(_start + 19, 39)))
 proj, rt, ftab = pipeline.build_projections(players, matchlog, fixtures, GWS)
 # Monte-Carlo every fixture: zero-sum bonus, plus the distribution behind each
 # projection. See pipeline.with_simulation.

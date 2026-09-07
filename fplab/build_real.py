@@ -52,6 +52,7 @@ def fetch_current_registry(season: str = CUR_SEASON, force: bool = False) -> dic
     picked off a stale registry can contain a player who has left the club, and
     the model has no way to notice.
     """
+    live = None
     try:
         from . import sources
         bs = sources.bootstrap(force=force)
@@ -63,20 +64,48 @@ def fetch_current_registry(season: str = CUR_SEASON, force: bool = False) -> dic
             # by different rules and the xP engine has never modelled them, so
             # drop them rather than half-score them.
             players = players[players["element_type"].isin((1, 2, 3, 4))]
-            n_flag = int((players["status"] != "a").sum())
-            print(f"  registry: LIVE bootstrap-static ({len(players)} players, "
-                  f"{n_flag} carrying an injury or availability flag)")
-            return {"players": players, "teams": teams, "fixtures": fixtures,
+            live = {"players": players, "teams": teams, "fixtures": fixtures,
                     "source": "live"}
     except Exception as e:                       # offline, rate-limited, schema drift
         print(f"  ! live registry unavailable ({type(e).__name__}: {e}); "
               f"falling back to the archived snapshot")
 
-    d = build_prior.fetch_season(season, force, require_gws=False)
-    d["source"] = "archive"
-    print(f"  registry: archived CSV ({len(d['players'])} players) — "
+    # The "live" registry may itself be a stale disk cache: `sources.bootstrap`
+    # serves data/cache/bootstrap.json whenever the file is recent, and a
+    # checked-out copy of that file is always recent, whatever it contains.
+    # Measured in-season: the cache still said pre-season (0 finished
+    # gameweeks, 587 players) while the archived CSV carried GW1 results,
+    # 616 players and post-deadline injury flags. Whichever source has seen
+    # more football is the fresher one; ties go to the live endpoint.
+    archive = None
+    try:
+        archive = build_prior.fetch_season(season, force, require_gws=False)
+        archive["source"] = "archive"
+    except Exception as e:
+        if live is None:
+            raise
+        print(f"  ! archived snapshot unavailable ({type(e).__name__}: {e})")
+
+    def _played(d: dict | None) -> int:
+        if d is None:
+            return -1
+        fin = d["fixtures"].get("finished")
+        return int(pd.Series(fin).fillna(False).astype(bool).sum()) if fin is not None else 0
+
+    if live is not None and _played(live) >= _played(archive):
+        n_flag = int((live["players"]["status"] != "a").sum())
+        print(f"  registry: LIVE bootstrap-static ({len(live['players'])} players, "
+              f"{n_flag} carrying an injury or availability flag)")
+        return live
+    if live is not None:
+        print(f"  ! cached bootstrap-static is older than the archive "
+              f"({_played(live)} vs {_played(archive)} finished fixtures); "
+              f"using the archive")
+    n_flag = int((archive["players"]["status"] != "a").sum())
+    print(f"  registry: archived CSV ({len(archive['players'])} players, "
+          f"{n_flag} carrying an injury or availability flag) — "
           f"may lag the transfer window")
-    return d
+    return archive
 
 
 def build(force: bool = False) -> dict:
@@ -424,8 +453,18 @@ def build(force: bool = False) -> dict:
     matchlog.to_parquet(DATA / "matchlog.parquet")
     fixtures.to_parquet(DATA / "fixtures.parquet")
 
+    # The next gameweek to plan for: the first one with a kick-off still in
+    # the future. Derived from the calendar rather than the `finished` flags
+    # because an archived snapshot can lag by a round or two, and a manager
+    # plans the next deadline, not the one the snapshot last saw.
+    current_gw = next_gameweek(fixtures)
+    played_gws = int(fixtures.loc[fixtures["finished"].astype(bool), "gw"].nunique()) \
+        if len(fixtures) else 0
+
     audit = {
-        "current_gw": 1,
+        "current_gw": current_gw,
+        "played_gws_in_snapshot": played_gws,
+        "registry_source": cur.get("source"),
         "n_players": len(players),
         "n_new_signings": int(players["is_new_signing"].sum()),
         "n_club_changes": int((players["prior_club"].notna()
@@ -434,15 +473,31 @@ def build(force: bool = False) -> dict:
         "n_no_pl_history": int(players["no_pl_history"].sum()),
         "prior_season_used": PRIOR_SEASON,
         "current_season": CUR_SEASON,
-        "note": "Pre-season build: all *_now columns are correctly zero; "
-               "projections run 100% on real prior-season data via the "
-               "credibility blend. Injury flags unavailable pre-season.",
+        "note": ("Pre-season build: all *_now columns are correctly zero; "
+                 "projections run 100% on real prior-season data via the "
+                 "credibility blend. Injury flags unavailable pre-season."
+                 if played_gws == 0 else
+                 f"In-season build from a snapshot holding {played_gws} finished "
+                 f"gameweek(s): prices, ownership and injury flags are current "
+                 f"to the snapshot; player rates still run on the multi-season "
+                 f"prior (current-season minutes are not yet blended in)."),
         "teams": sorted(players["team"].dropna().unique().tolist()),
     }
     (DATA / "audit.json").write_text(json.dumps(audit, indent=2, default=str))
     print(f"✓ wrote real players/matchlog/fixtures parquet")
     print(f"  {audit['n_new_signings']} players flagged as club changes / new to the league")
     return audit
+
+
+def next_gameweek(fixtures: pd.DataFrame, now: pd.Timestamp | None = None) -> int:
+    """First gameweek whose earliest kick-off is still ahead of `now`."""
+    if not len(fixtures) or "kickoff" not in fixtures.columns:
+        return 1
+    now = now or pd.Timestamp.now(tz="UTC")
+    ko = pd.to_datetime(fixtures["kickoff"], utc=True, errors="coerce")
+    first = ko.groupby(fixtures["gw"]).min().dropna().sort_index()
+    ahead = first[first > now]
+    return int(ahead.index[0]) if len(ahead) else int(first.index[-1])
 
 
 def build_id_bridge(cur_players: pd.DataFrame, cur_season: str, prior_season: str,
